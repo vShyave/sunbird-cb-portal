@@ -56,7 +56,7 @@ export class CompetencyListComponent implements OnInit, OnDestroy {
     allValue: 0,
     behavioural: <any>[],
     functional: <any>[],
-    domain: <any>[]
+    domain: <any>[],
   };
 
   leftCardDetails: any = [{
@@ -73,7 +73,10 @@ export class CompetencyListComponent implements OnInit, OnDestroy {
       lastYear: 0,
       threeMonthsSubTheme: 0,
       sixMonthsSubTheme: 0,
-      lastYearSubTheme: 0
+      lastYearSubTheme: 0,
+      threeMonthsContentConsumed: 0,
+      sixMonthsContentConsumed: 0,
+      lastYearContentConsumed: 0
     }
   }, {
     name: this.TYPE_CONST.functional.value,
@@ -89,7 +92,10 @@ export class CompetencyListComponent implements OnInit, OnDestroy {
       lastYear: 0,
       threeMonthsSubTheme: 0,
       sixMonthsSubTheme: 0,
-      lastYearSubTheme: 0
+      lastYearSubTheme: 0,
+      threeMonthsContentConsumed: 0,
+      sixMonthsContentConsumed: 0,
+      lastYearContentConsumed: 0
     }
   }, {
     name: this.TYPE_CONST.domain.value,
@@ -105,7 +111,10 @@ export class CompetencyListComponent implements OnInit, OnDestroy {
       lastYear: 0,
       threeMonthsSubTheme: 0,
       sixMonthsSubTheme: 0,
-      lastYearSubTheme: 0
+      lastYearSubTheme: 0,
+      threeMonthsContentConsumed: 0,
+      sixMonthsContentConsumed: 0,
+      lastYearContentConsumed: 0
     }
   }];
 
@@ -143,6 +152,30 @@ export class CompetencyListComponent implements OnInit, OnDestroy {
     this.getUserEnrollmentList();
   }
 
+  leftCardFilter: any = {};
+  bindFilterData(content: any, flag: string): void {
+    if (content.competencies_v5 && content.competencies_v5.length) {
+      if (this.leftCardFilter[flag]) {
+        content.competencies_v5.forEach((v5Obj: any) => {
+          if (this.leftCardFilter[flag][v5Obj.competencyArea]) {
+            const theme =  this.leftCardFilter[flag][v5Obj.competencyArea];
+            theme.contentConsumed += 1;
+            if (theme.subTheme.indexOf(v5Obj.competencySubTheme) === -1) {
+              theme.subTheme.push(v5Obj.competencySubTheme);
+            }
+          } else {
+            this.leftCardFilter[flag][v5Obj.competencyArea] = {
+              'ContentConsumed': 0,
+              'subTheme': []
+            }
+          }
+        })
+      } else {
+        this.leftCardFilter[flag] = {};
+      }
+    } 
+  }
+
   getUserEnrollmentList(): void {
     const enrollmentMapData = JSON.parse(localStorage.getItem('enrollmentMapData') as any);
     const userId: any = this.configService && this.configService.userProfile && this.configService.userProfile.userId;
@@ -152,9 +185,20 @@ export class CompetencyListComponent implements OnInit, OnDestroy {
         (response: any) => {
           let competenciesV5: any[] = [];
           response.courses.forEach((eachCourse: any) => {
-
             // To eliminate In progress or Yet to start courses...
             if (enrollmentMapData[eachCourse.contentId].status !== 2) return;
+            
+            if (new Date(eachCourse.dateTime) > this.one_year_back) {
+              this.bindFilterData(eachCourse.content, 'lastYear');
+
+              if (new Date(eachCourse.dateTime) > this.six_month_back) {
+                this.bindFilterData(eachCourse.content, 'sixMonths');
+              }
+
+              if (new Date(eachCourse.dateTime) > this.three_month_back) {
+                this.bindFilterData(eachCourse.content, 'threeMonths');
+              }
+            }
 
             if (eachCourse.content && eachCourse.content.competencies_v5) {
               competenciesV5 = [...competenciesV5, ...eachCourse.content.competencies_v5];
@@ -239,6 +283,7 @@ export class CompetencyListComponent implements OnInit, OnDestroy {
 
           this.getOtherData();
           this.competency.skeletonLoading = false;
+          console.log("this.leftCardFilter - ", this.leftCardFilter);
           
         }, (error: HttpErrorResponse) => {
           if (!error.ok) {
@@ -266,14 +311,25 @@ export class CompetencyListComponent implements OnInit, OnDestroy {
 
   handleLeftFilter(months: string): void {
     // Do not delete, need to work on this...
-    // this.leftCardDetails.forEach((_obj: any) => {
-    //   this.competency[`${_obj.name}Value`] = _obj.filter[months]
-    //   if (months === 'all') {
-    //     this.competency[`${_obj.name}SubTheme`] = _obj.competencySubTheme
-    //   } else {
-    //     this.competency[`${_obj.name}SubTheme`] = _obj.filter[`${months}SubTheme`]
-    //   }
-    // });
+    const data = this.leftCardFilter[months];
+    
+    for (let key in data) {
+      // this.competency[(key === 'Behavioral' ? 'Behavioural' : key )+'SubTheme'] = data[key].subTheme.length;
+      this.leftCardDetails.forEach((_obj: any) => {
+        if (_obj.type === key) {
+          _obj.filter[`${months}SubTheme`] = data[key].subTheme.length;
+          _obj.filter[`${months}ContentConsumed`] = data[key].ContentConsumed
+        }
+      });
+      // this.competency[`${_obj.type}Value`] = _obj.filter[months]
+        // if (months === 'all') {
+        //   this.competency[`${_obj.type}SubTheme`] = _obj.competencySubTheme
+        // } else {
+        //   this.competency[`${_obj.type}SubTheme`] = _obj.filter[`${months}SubTheme`]
+        // }
+    }
+
+    console.log("this.leftCardDetails - ", this.leftCardDetails);
     this.showFilterIndicator = months;
   }
 
