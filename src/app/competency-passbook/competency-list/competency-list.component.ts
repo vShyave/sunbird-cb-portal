@@ -173,11 +173,12 @@ export class CompetencyListComponent implements OnInit, OnDestroy {
               batchId: eachCourse.batchId,
               contentId: eachCourse.contentId,
             }
+
             if (eachCourse.issuedCertificates.length) {
               // tslint: disable-next-line
               eachCourse.issuedCertificates = eachCourse.issuedCertificates.map((icObj: any) => {
-                const nicObj = { ...icObj, ...courseDetails }
-                return nicObj
+                const newIcObj = { ...icObj, ...courseDetails }
+                return newIcObj
               })
             } else {
               eachCourse.issuedCertificates.push(courseDetails)
@@ -186,6 +187,7 @@ export class CompetencyListComponent implements OnInit, OnDestroy {
             if ((eachCourse.content.competencies_v5 && eachCourse.content.competencies_v5.length)) {
               const subThemeMapping: any = {}
               eachCourse.content.competencies_v5.forEach((v5Obj: any) => {
+
                 if (this.certificateMappedObject[v5Obj.competencyTheme]) {
 
                   // Certificate consumed logic...
@@ -223,13 +225,11 @@ export class CompetencyListComponent implements OnInit, OnDestroy {
                   subThemeMapping[v5Obj.competencyTheme].push(v5Obj.competencySubTheme)
                 }
               })
-              // for (const key in subThemeMapping) {
-              //   this.certificateMappedObject[key].subThemes.push(subThemeMapping[key])
-              // }
-              if (subThemeMapping.length) {
-                subThemeMapping.forEach((key: any) => {
+
+              for (const key in subThemeMapping) {
+                if (subThemeMapping.hasOwnProperty(key)) {
                   this.certificateMappedObject[key].subThemes.push(subThemeMapping[key])
-                })
+                }
               }
             }
           })
@@ -261,6 +261,7 @@ export class CompetencyListComponent implements OnInit, OnDestroy {
 
           this.competencyArray = (this.isMobile) ? this.competency.all.slice(0, 3) : this.competency.all
           this.competency.skeletonLoading = false
+
         },
         (error: HttpErrorResponse) => {
           if (!error.ok) {
